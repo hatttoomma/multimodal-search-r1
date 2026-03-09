@@ -1,27 +1,32 @@
 # This script is for single-node running test
 
-cd multimodal-search-r1;
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+cd "${REPO_ROOT}" || exit 1
+export WANDB_MODE=disabled
+export SERPAPI_API_KEY="8e2ca42d822d6acb2f731e0467ed50df32482b98"
+export OPENROUTER_API_KEY="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"
 
 python3 -m mmsearch_r1.trainer.multimodal.main_ppo \
     algorithm.adv_estimator=grpo \
-    data.train_files=$TRAIN_DATA_PATH \
-    data.val_files=$VAL_DATA_PATH \
-    data.train_batch_size=32 \
+    data.train_files=mmsearch_r1/data/mini_data.pq \
+    data.val_files=mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet \
+    data.train_batch_size=1 \
     data.max_prompt_length=4096 \
     data.max_response_length=2048 \
     data.image_key=images \
     data.user_prompt_round_1=mmsearch_r1/prompts/round_1_user_prompt_qwenvl.pkl \
     data.user_prompt_after_image_search=mmsearch_r1/prompts/after_image_search_prompt_qwenvl.pkl \
     data.user_prompt_after_text_search=mmsearch_r1/prompts/after_text_search_prompt_qwenvl.pkl \
-    actor_rollout_ref.model.path=Qwen/Qwen2.5-VL-7B-Instruct \
+    actor_rollout_ref.model.path=Qwen/Qwen2.5-VL-3B-Instruct \
     actor_rollout_ref.actor.optim.lr=2e-6 \
     actor_rollout_ref.actor.optim.lr_sigmoid_decay_warmup=True \
     actor_rollout_ref.actor.optim.lr_sigmoid_decay_ratio=0.95 \
     actor_rollout_ref.actor.optim.lr_sigmoid_decay_warmup_steps=45 \
     actor_rollout_ref.model.use_remove_padding=True \
-    actor_rollout_ref.actor.ppo_mini_batch_size=32 \
+    actor_rollout_ref.actor.ppo_mini_batch_size=1 \
     actor_rollout_ref.actor.entropy_coeff=0 \
-    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=8 \
+    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.actor.use_multi_turn_response_mask=True \
     actor_rollout_ref.actor.use_kl_loss=True \
     actor_rollout_ref.actor.kl_loss_coef=0.001 \
@@ -48,10 +53,10 @@ python3 -m mmsearch_r1.trainer.multimodal.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
-    trainer.logger=['console','wandb'] \
+    trainer.logger=['console'] \
     trainer.project_name=$WANDB_PROJECT_NAME \
     trainer.experiment_name=$WANDB_EXP_NAME \
-    trainer.n_gpus_per_node=8 \
+    trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=100 \
     trainer.test_freq=100 \
@@ -60,4 +65,8 @@ python3 -m mmsearch_r1.trainer.multimodal.main_ppo \
     +trainer.format_penalty=0.1 \
     +trainer.reward_mode="EM" \
     +trainer.val_before_train=True \
-    +algorithm.filter_groups.enable=False
+    +algorithm.filter_groups.enable=False \
+    +trainer.val_files=mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet \
+    trainer.val_only=True \
+    trainer.val_only_save_dir=mmsearch_r1/results \
+    trainer.val_generations_to_log_to_wandb=64 # num of val generations to log, this should be larger than the size of val dataset for complete saving
