@@ -320,6 +320,11 @@ class vLLMRollout_MultiTurn_MMSearch_R1(vLLMRollout):
                         print(
                             f"[Round #{current_iteration} Search END][Thread{thread_id}] Search tool return:\n {tool_returned_str} ..."
                         )
+                        if isinstance(tool_stat, dict) and not tool_stat.get("success", False):
+                            print(
+                                f"[Round #{current_iteration} Search END][Thread{thread_id}] "
+                                f"Search tool error: {tool_stat.get('error', '')}"
+                            )
                         return (tool_returned_str, tool_returned_images, tool_stat)
 
                     search_call_futures = []

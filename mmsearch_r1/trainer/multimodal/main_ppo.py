@@ -15,6 +15,7 @@
 Note that we don't combine the main with ray_trainer as ray_trainer is used by other main.
 """
 import hydra
+import os
 import ray
 
 from mmsearch_r1.trainer.multimodal.ray_trainer import RayPPOTrainer
@@ -28,9 +29,31 @@ def main(config):
 def run_ppo(config, compute_score=None):
     if not ray.is_initialized():
         # this is for local ray cluster
+        env_vars = {'TOKENIZERS_PARALLELISM': 'true', 'NCCL_DEBUG': 'WARN'}
+        # Forward search-related credentials/settings to Ray workers.
+        passthrough_env_keys = [
+            "SERPAPI_API_KEY",
+            "OPENROUTER_API_KEY",
+            "QWEN_API_KEY",
+            "DASHSCOPE_API_KEY",
+            "QWEN_API_BASE",
+            "QWEN_SUMMARY_MODEL",
+            "OPENROUTER_HTTP_REFERER",
+            "OPENROUTER_X_TITLE",
+            "MMSEARCH_TEXT_SEARCH_TOP_K",
+            "MMSEARCH_IMAGE_SEARCH_TOP_K",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+        ]
+        for key in passthrough_env_keys:
+            value = os.getenv(key)
+            if value:
+                env_vars[key] = value
+
         ray.init(
             include_dashboard=False,
-            runtime_env={'env_vars': {'TOKENIZERS_PARALLELISM': 'true', 'NCCL_DEBUG': 'WARN'}}
+            runtime_env={'env_vars': env_vars}
             )
 
     ray.get(main_task.remote(config, compute_score))

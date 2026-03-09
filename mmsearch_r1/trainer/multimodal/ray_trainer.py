@@ -700,7 +700,11 @@ class RayPPOTrainer:
                 fp = self.config.trainer.format_penalty
             correct_threshold = fp + 1e-4
             correct_cnt = sum(1 for x in rewards if x > correct_threshold)
-            metric_dict[f'val/{data_source}/score'] = correct_cnt / len(rewards)
+            answer_acc = correct_cnt / len(rewards)
+            metric_dict[f'val/{data_source}/score'] = answer_acc
+            # Keep explicit accuracy aliases for easier dashboard reading.
+            metric_dict[f'val/{data_source}/answer_acc'] = answer_acc
+            metric_dict[f'val/{data_source}/final_answer_acc'] = answer_acc
             search_cnt_text_total, search_cnt_image_total = 0, 0
             search_cnt_text, search_cnt_image, search_cnt_mix = 0, 0, 0
             search_fail_text, search_fail_image = 0, 0
