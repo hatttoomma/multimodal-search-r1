@@ -204,4 +204,5 @@ trainer:
   train_generations_to_log_to_wandb: True
   val_only: False
   val_only_save_dir: null
+  val_limit: 100  # Only run first X validation samples (null for full validation)
   ttrl: False

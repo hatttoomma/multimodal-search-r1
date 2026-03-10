@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import tqdm
 from omegaconf import OmegaConf, open_dict
-from torch.utils.data import RandomSampler, SequentialSampler
+from torch.utils.data import RandomSampler, SequentialSampler, Subset
 from torchdata.stateful_dataloader import StatefulDataLoader
 from verl import DataProto
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
