@@ -6,6 +6,7 @@ cd "${REPO_ROOT}" || exit 1
 export WANDB_MODE=disabled
 export SERPER_API_KEY="74e39017c9b78f5bc2b3dde8030a83fb8ad28e87"
 export OPENROUTER_API_KEY="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"
+export JINA_API_KEY="jina_dfe3504f89ef4d0d954fdfb676a07d62SAQE0KjbByq7oqfq_JomPbhep0X_"
 TTRL_ENABLE="${TTRL_ENABLE:-false}"
 TRAIN_FILE="${TRAIN_FILE:-mmsearch_r1/data/mini_data.pq}"
 if [ "${TTRL_ENABLE}" = "true" ]; then

@@ -225,8 +225,14 @@ class vLLMRollout_MultiTurn_MMSearch_R1(vLLMRollout):
                             idx_to_remove.append(i_gen)
                             print(f"{i_gen} has reached max_image_gen_round {max_image_gen_round}")
                             continue
-                        img_to_search = non_tensor_batch["image_urls"][i_gen]
-                        id_search_query_mapping[str(i_gen)] = {"type": "image", "content": img_to_search}
+                        img_url = non_tensor_batch["image_urls"][i_gen] if "image_urls" in non_tensor_batch else None
+                        img_pil = None
+                        if not img_url:
+                            imgs = vllm_inputs[i_gen].get("multi_modal_data", {}).get("image", [])
+                            img_pil = imgs[0] if imgs else None
+                        id_search_query_mapping[str(i_gen)] = {
+                            "type": "image", "content": img_url, "image": img_pil,
+                        }
                         id_image_gen_cnt[i_gen] += 1  # Text Gen Constraint
                     # Need to call text search
                     elif re.search(r'<text_search>.*</text_search>$', decoded_resp_):
@@ -278,9 +284,9 @@ class vLLMRollout_MultiTurn_MMSearch_R1(vLLMRollout):
                     for i_todo in tqdm(to_generate, desc=f"[Round #{current_iteration} Searching Progress]"):
                         tool_returned_images = []
                         assert str(i_todo) in id_search_query_mapping.keys()
-                        _type = id_search_query_mapping[str(i_todo)]["type"]
-                        _content = id_search_query_mapping[str(i_todo)]["content"]
-                        # print(f"[Round #{current_iteration} Search START] Call search tool | Type: {_type} | Content: {_content} ...")
+                        _mapping = id_search_query_mapping[str(i_todo)]
+                        _type = _mapping["type"]
+                        _content = _mapping["content"]
                         if _type == "text":
                             tool_returned_str, tool_stat = call_text_search(
                                 text_query=_content,
@@ -288,10 +294,10 @@ class vLLMRollout_MultiTurn_MMSearch_R1(vLLMRollout):
                         elif _type == "image":
                             tool_returned_str, tool_returned_images, tool_stat = call_image_search(
                                 image_url=_content,
+                                image=_mapping.get("image"),
                             )
                         else:
                             raise ValueError(f"[Round #{current_iteration} Search ERROR] Unknown Search Type: {_type}")
-                        # print(f"[Round #{current_iteration} Search END] Search tool return:\n {tool_returned_str} ...")
                         search_result.append((tool_returned_str, tool_returned_images, tool_stat))
                     ########################################## sequential implementation #############################################
                 else:
@@ -299,8 +305,9 @@ class vLLMRollout_MultiTurn_MMSearch_R1(vLLMRollout):
                     def tool_helper(i_todo):
                         tool_returned_images = []
                         assert str(i_todo) in id_search_query_mapping.keys()
-                        _type = id_search_query_mapping[str(i_todo)]["type"]
-                        _content = id_search_query_mapping[str(i_todo)]["content"]
+                        _mapping = id_search_query_mapping[str(i_todo)]
+                        _type = _mapping["type"]
+                        _content = _mapping["content"]
                         thread_id = threading.current_thread().ident
                         print(
                             f"[Round #{current_iteration} Search START][Thread{thread_id}] Call search tool | Type: {_type} | Content: {_content} ..."
@@ -312,6 +319,7 @@ class vLLMRollout_MultiTurn_MMSearch_R1(vLLMRollout):
                         elif _type == "image":
                             tool_returned_str, tool_returned_images, tool_stat = call_image_search(
                                 image_url=_content,
+                                image=_mapping.get("image"),
                             )
                         else:
                             raise ValueError(

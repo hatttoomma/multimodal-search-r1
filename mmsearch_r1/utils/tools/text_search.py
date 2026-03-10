@@ -44,7 +44,11 @@ def _serper_text_search(query: str, top_k: int) -> List[Dict[str, Any]]:
 def _read_with_jina(url: str) -> str:
     cleaned = url.replace("http://", "").replace("https://", "")
     reader_url = _JINA_READER_PREFIX + cleaned
-    response = requests.get(reader_url, timeout=_HTTP_TIMEOUT)
+    headers: Dict[str, str] = {}
+    jina_api_key = os.getenv("JINA_API_KEY")
+    if jina_api_key:
+        headers["Authorization"] = f"Bearer {jina_api_key}"
+    response = requests.get(reader_url, headers=headers, timeout=_HTTP_TIMEOUT)
     response.raise_for_status()
     text = response.text.strip()
     if len(text) > _MAX_READER_CHARS:

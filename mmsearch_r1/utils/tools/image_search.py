@@ -1,6 +1,6 @@
 import os
 from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import requests
 from PIL import Image
@@ -32,23 +32,37 @@ def _download_image(image_url: str) -> Image.Image | None:
         return None
 
 
-def _serper_lens_search(image_url: str, top_k: int) -> List[Dict[str, Any]]:
-    api_key = os.getenv("SERPER_API_KEY")
-    if not api_key:
-        raise RuntimeError("SERPER_API_KEY is not set.")
+def _pil_image_to_bytes(image: Image.Image, fmt: str = "JPEG") -> bytes:
+    buf = BytesIO()
+    image.save(buf, format=fmt)
+    return buf.getvalue()
 
+
+def _serper_lens_search_by_url(image_url: str, api_key: str, top_k: int) -> List[Dict[str, Any]]:
     headers = {
         "X-API-KEY": api_key,
         "Content-Type": "application/json",
     }
-    payload = {
-        "url": image_url,
-    }
-    response = requests.post(_SERPER_LENS_ENDPOINT, headers=headers, json=payload, timeout=_HTTP_TIMEOUT)
+    payload = {"url": image_url}
+    response = requests.post(
+        _SERPER_LENS_ENDPOINT, headers=headers, json=payload, timeout=_HTTP_TIMEOUT
+    )
     response.raise_for_status()
-    response_data = response.json()
+    return _extract_candidates(response.json(), top_k)
 
-    # Serper lens payload shapes may vary; keep broad field fallbacks.
+
+def _serper_lens_search_by_image(image: Image.Image, api_key: str, top_k: int) -> List[Dict[str, Any]]:
+    headers = {"X-API-KEY": api_key}
+    image_bytes = _pil_image_to_bytes(image)
+    files = {"file": ("image.jpg", image_bytes, "image/jpeg")}
+    response = requests.post(
+        _SERPER_LENS_ENDPOINT, headers=headers, files=files, timeout=_HTTP_TIMEOUT
+    )
+    response.raise_for_status()
+    return _extract_candidates(response.json(), top_k)
+
+
+def _extract_candidates(response_data: dict, top_k: int) -> List[Dict[str, Any]]:
     candidates = (
         response_data.get("visualMatches")
         or response_data.get("visual_matches")
@@ -59,20 +73,45 @@ def _serper_lens_search(image_url: str, top_k: int) -> List[Dict[str, Any]]:
     return candidates[:top_k]
 
 
-def call_image_search(image_url: str):
+def _serper_lens_search(
+    top_k: int,
+    image_url: Optional[str] = None,
+    image: Optional[Image.Image] = None,
+) -> List[Dict[str, Any]]:
+    api_key = os.getenv("SERPER_API_KEY")
+    if not api_key:
+        raise RuntimeError("SERPER_API_KEY is not set.")
+
+    if image_url:
+        return _serper_lens_search_by_url(image_url, api_key, top_k)
+    elif image is not None:
+        return _serper_lens_search_by_image(image, api_key, top_k)
+    else:
+        raise ValueError("Either image_url or image must be provided.")
+
+
+def call_image_search(
+    image_url: Optional[str] = None,
+    image: Optional[Image.Image] = None,
+) -> tuple:
     """
     Image Search Tool (Serper only).
 
-    Input:
-      - image_url: query image URL.
-    Flow:
-      - Use Serper Google Lens endpoint to retrieve visually relevant web pages.
-      - Extract each result's title and thumbnail.
-    Output:
-      - Interleaved thumbnail placeholders + titles as text.
-      - Actual PIL thumbnail images in the same order.
-      - Tool stats.
+    Accepts either *image_url* (str) or a PIL *image*.  When a URL is
+    available it is preferred; when the URL is ``None`` the PIL image is
+    uploaded directly via multipart form-data.
+
+    Returns:
+      (tool_returned_str, tool_returned_images, tool_stat)
     """
+    if not image_url and image is None:
+        return (
+            "[Image Search Results] There is an error encountered in performing search. "
+            "Please reason with your own capaibilities.",
+            [],
+            {"success": False, "num_images": 0, "top_k": 0, "error": "No image_url or image provided."},
+        )
+
     top_k = _safe_get_top_k()
     tool_returned_images: List[Image.Image] = []
     tool_returned_str = (
@@ -87,7 +126,7 @@ def call_image_search(image_url: str):
     used_results = 0
 
     try:
-        results = _serper_lens_search(image_url=image_url, top_k=top_k)
+        results = _serper_lens_search(top_k=top_k, image_url=image_url, image=image)
         for idx, item in enumerate(results, start=1):
             title = (
                 item.get("title")
