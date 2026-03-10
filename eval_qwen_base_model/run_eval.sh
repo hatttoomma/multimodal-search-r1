@@ -12,5 +12,5 @@ conda run --no-capture-output -n mmsearch_r1 \
     --temperature 0.0 \
     --tensor-parallel-size 1 \
     --gpu-memory-utilization 0.85 \
-    --batch-size 64 \
+    --batch-size 1 \
     "$@"

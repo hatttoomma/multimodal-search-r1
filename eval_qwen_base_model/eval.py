@@ -54,11 +54,23 @@ def build_messages(question: str, image_data_url: str):
     ]
 
 
-def check_answer(response: str, candidate_answers: list[str]) -> bool:
+def extract_numbers(text: str) -> list[float]:
+    """Extract all numbers (int or float) from text."""
+    import re
+    return [float(m) for m in re.findall(r"-?\d+(?:\.\d+)?(?:e[+-]?\d+)?", text)]
+
+
+def check_answer(response: str, candidate_answers: list) -> bool:
     response_lower = response.strip().lower()
     for ans in candidate_answers:
-        if ans.lower() in response_lower:
-            return True
+        if isinstance(ans, str):
+            if ans.lower() in response_lower:
+                return True
+        elif isinstance(ans, dict) and "range" in ans:
+            low, high = ans["range"]
+            for num in extract_numbers(response):
+                if low <= num <= high:
+                    return True
     return False
 
 
