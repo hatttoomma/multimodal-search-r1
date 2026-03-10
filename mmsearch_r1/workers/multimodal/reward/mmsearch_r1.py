@@ -81,17 +81,14 @@ class MMSearchR1_RewardManager:
             ground_truth = []
             reward_model_info = data_item.non_tensor_batch.get('reward_model', None)
             if reward_model_info is not None and 'ground_truth' in reward_model_info:
-                ground_truth = reward_model_info['ground_truth']
-                if isinstance(ground_truth, str):
-                    ground_truth = [ground_truth]
-                if 'candidate_answers' in reward_model_info:
+                gt = reward_model_info['ground_truth']
+                ground_truth = [gt] if isinstance(gt, str) else list(gt)
+                if 'candidate_answers' in reward_model_info and reward_model_info['candidate_answers']:
                     candidate_answers = reward_model_info['candidate_answers']
                     if isinstance(candidate_answers, list):
                         ground_truth += candidate_answers
                     elif isinstance(candidate_answers, str):
                         ground_truth += json.loads(candidate_answers)
-                    else:
-                        raise TypeError(f"candidate_answers must be a list or a string, but got {type(candidate_answers)}")
                 ground_truth = [g for g in ground_truth if isinstance(g, str)]
             data_source = data_item.non_tensor_batch['data_source']
 

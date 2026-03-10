@@ -24,16 +24,25 @@ def load_data(parquet_path: str):
             question = row["prompt"][0]["content"]
             img_bytes = row["images"][0]["bytes"]
 
-            gt = row["reward_model"]["ground_truth"]
-            candidates_str = row["reward_model"]["candidate_answers"]
-            candidate_answers = json.loads(candidates_str) if candidates_str else [gt]
+            reward_model_info = row["reward_model"]
+            gt = reward_model_info["ground_truth"]
+            ground_truth_list = [gt] if isinstance(gt, str) else list(gt)
+
+            if "candidate_answers" in reward_model_info and reward_model_info["candidate_answers"]:
+                candidates_raw = reward_model_info["candidate_answers"]
+                if isinstance(candidates_raw, list):
+                    ground_truth_list += candidates_raw
+                elif isinstance(candidates_raw, str):
+                    ground_truth_list += json.loads(candidates_raw)
+
+            ground_truth_list = [g for g in ground_truth_list if isinstance(g, str)]
 
             yield {
                 "data_id": row["data_id"],
                 "question": question,
                 "image_bytes": img_bytes,
                 "ground_truth": gt,
-                "candidate_answers": candidate_answers,
+                "candidate_answers": ground_truth_list,
             }
 
 
