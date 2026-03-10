@@ -658,6 +658,8 @@ class RayPPOTrainer:
                         'SubEM',
                     ], f'reward mode {self.config.trainer.reward_mode} not recognized, please use EM or SubEM'
                     test_batch.non_tensor_batch['extra_info'][item_id]['reward_mode'] = self.config.trainer.reward_mode
+                if 'ttrl' in self.config.trainer:
+                    test_batch.non_tensor_batch['extra_info'][item_id]['ttrl'] = self.config.trainer.ttrl
                 if 'use_search_count_penalty' in self.config.trainer:
                     use_search_count_penalty = self.config.trainer.use_search_count_penalty
                     test_batch.non_tensor_batch['extra_info'][item_id][
@@ -1088,6 +1090,8 @@ class RayPPOTrainer:
                                 new_batch.non_tensor_batch['extra_info'][item_id][
                                     'reward_mode'
                                 ] = self.config.trainer.reward_mode
+                            if 'ttrl' in self.config.trainer:
+                                new_batch.non_tensor_batch['extra_info'][item_id]['ttrl'] = self.config.trainer.ttrl
                             # add search count penalty
                             if 'use_search_count_penalty' in self.config.trainer:
                                 use_search_count_penalty = self.config.trainer.use_search_count_penalty

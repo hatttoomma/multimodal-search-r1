@@ -46,9 +46,9 @@ wandb login $WANDB_API_KEY
 ```
 
 ## Multimodal Search Tool Implemention
-We draw inspiration from open-sourced implementation [OpenDeepResearcher](https://github.com/mshumer/OpenDeepResearcher/blob/main/open_deep_researcher.ipynb), which integrates [SerpApi](https://serpapi.com/), [JINA Reader](https://jina.ai/reader/), and LLM-based summarization to retrieve and condense web content relevant to a given question. Currently, MMSearch-R1 includes two types of search tools: an image search tool and a text search tool.
-- **Image Search Tool:** This tool is built solely on SerpAPI. The model provides the image (via URL or other form) to the tool, which is responsible for retrieving the top-k visually relevant web pages. The tool returns a sequence of interleaved thumbnails and titles extracted from those pages.
-- **Text Search Tool:** This tool combines SerpAPI, JINA Reader, and Qwen3-32B for summarization. The model submits a text query, and SerpAPI retrieves the top-k relevant web page URLs. JINA Reader parses and cleans the content of those pages, and Qwen3-32B generates summaries based on the original query. The tool ultimately returns a list of summarized passages from the top-k relevant webpages with their respective links.
+We draw inspiration from open-sourced implementation [OpenDeepResearcher](https://github.com/mshumer/OpenDeepResearcher/blob/main/open_deep_researcher.ipynb), which integrates [Serper](https://serper.dev/), [JINA Reader](https://jina.ai/reader/), and LLM-based summarization to retrieve and condense web content relevant to a given question. Currently, MMSearch-R1 includes two types of search tools: an image search tool and a text search tool.
+- **Image Search Tool:** This tool is built solely on Serper. The model provides the image (via URL or other form) to the tool, which is responsible for retrieving the top-k visually relevant web pages. The tool returns a sequence of interleaved thumbnails and titles extracted from those pages.
+- **Text Search Tool:** This tool combines Serper, JINA Reader, and Qwen3-32B for summarization. The model submits a text query, and Serper retrieves the top-k relevant web page URLs. JINA Reader parses and cleans the content of those pages, and Qwen3-32B generates summaries based on the original query. The tool ultimately returns a list of summarized passages from the top-k relevant webpages with their respective links.
 
 ⚠️⚠️⚠️ Before initiating formal training, you are expected to build your own search tool pipeline under the `mmsearch_r1/utils/tools/` directory and invoke it appropriately during the multi-turn rollout process.
 
@@ -76,6 +76,19 @@ trainer.val_only_save_dir=${path_to_save_dir} \
 trainer.val_generations_to_log_to_wandb=64 # num of val generations to log, this should be larger than the size of val dataset for complete saving
 ```
 The model's responses will be saved in JSON format under `${path_to_save_dir}`, which can be used for subsequent analysis and evaluation.
+
+If you prefer a lightweight standalone evaluation entrypoint (without entering the PPO training loop), use:
+```bash
+python3 -m mmsearch_r1.trainer.multimodal.main_eval_only \
+  data.val_files=${path_to_val_data} \
+  data.train_files=${path_to_val_data} \
+  actor_rollout_ref.model.path=${path_to_model_or_ckpt} \
+  trainer.n_gpus_per_node=${num_gpus} \
+  trainer.nnodes=1 \
+  trainer.logger=['console'] \
+  trainer.val_only_save_dir=${path_to_save_dir} \
+  +trainer.val_metrics_save_path=${path_to_save_metrics_json}
+```
 
 ## ToDo
 - [x] Model and Datasets

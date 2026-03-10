@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 import requests
 
 
-_SERPAPI_ENDPOINT = "https://serpapi.com/search.json"
+_SERPER_SEARCH_ENDPOINT = "https://google.serper.dev/search"
 _JINA_READER_PREFIX = "https://r.jina.ai/http://"
 _DEFAULT_TOP_K = 3
 _HTTP_TIMEOUT = 25
@@ -22,22 +22,23 @@ def _safe_get_top_k() -> int:
         return _DEFAULT_TOP_K
 
 
-def _serpapi_text_search(query: str, top_k: int) -> List[Dict[str, Any]]:
-    api_key = os.getenv("SERPAPI_API_KEY")
+def _serper_text_search(query: str, top_k: int) -> List[Dict[str, Any]]:
+    api_key = os.getenv("SERPER_API_KEY")
     if not api_key:
-        raise RuntimeError("SERPAPI_API_KEY is not set.")
+        raise RuntimeError("SERPER_API_KEY is not set.")
 
-    params = {
-        "engine": "google",
+    headers = {
+        "X-API-KEY": api_key,
+        "Content-Type": "application/json",
+    }
+    payload = {
         "q": query,
         "num": top_k,
-        "api_key": api_key,
-        "no_cache": "true",
     }
-    response = requests.get(_SERPAPI_ENDPOINT, params=params, timeout=_HTTP_TIMEOUT)
+    response = requests.post(_SERPER_SEARCH_ENDPOINT, headers=headers, json=payload, timeout=_HTTP_TIMEOUT)
     response.raise_for_status()
-    payload = response.json()
-    return (payload.get("organic_results") or [])[:top_k]
+    response_data = response.json()
+    return (response_data.get("organic") or [])[:top_k]
 
 
 def _read_with_jina(url: str) -> str:
@@ -118,10 +119,10 @@ def _fallback_summary(page_text: str) -> str:
 
 def call_text_search(text_query: str):
     """
-    Text Search Tool (SerpAPI + JINA Reader + Qwen3-32B).
+    Text Search Tool (Serper + JINA Reader + Qwen3-32B).
 
     Flow:
-      1) SerpAPI retrieves top-k relevant webpage links for the text query.
+      1) Serper retrieves top-k relevant webpage links for the text query.
       2) JINA Reader parses and cleans each page.
       3) Qwen3-32B summarizes each page with respect to the original query.
 
@@ -140,7 +141,7 @@ def call_text_search(text_query: str):
     )
 
     try:
-        search_results = _serpapi_text_search(query=text_query, top_k=top_k)
+        search_results = _serper_text_search(query=text_query, top_k=top_k)
         for idx, result in enumerate(search_results, start=1):
             link = (result.get("link") or "").strip()
             if not link:

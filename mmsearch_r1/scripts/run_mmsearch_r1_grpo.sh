@@ -4,12 +4,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 cd "${REPO_ROOT}" || exit 1
 export WANDB_MODE=disabled
-export SERPAPI_API_KEY="8e2ca42d822d6acb2f731e0467ed50df32482b98"
+export SERPER_API_KEY="74e39017c9b78f5bc2b3dde8030a83fb8ad28e87"
 export OPENROUTER_API_KEY="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"
+TTRL_ENABLE="${TTRL_ENABLE:-false}"
+TRAIN_FILE="${TRAIN_FILE:-mmsearch_r1/data/mini_data.pq}"
+if [ "${TTRL_ENABLE}" = "true" ]; then
+    TRAIN_FILE="${TTRL_TRAIN_FILE:-mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet}"
+fi
 
 python3 -m mmsearch_r1.trainer.multimodal.main_ppo \
     algorithm.adv_estimator=grpo \
-    data.train_files=mmsearch_r1/data/mini_data.pq \
+    data.train_files="${TRAIN_FILE}" \
     data.val_files=mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet \
     data.train_batch_size=1 \
     data.max_prompt_length=4096 \
@@ -64,6 +69,7 @@ python3 -m mmsearch_r1.trainer.multimodal.main_ppo \
     +trainer.search_penalty=0.1 \
     +trainer.format_penalty=0.1 \
     +trainer.reward_mode="EM" \
+    +trainer.ttrl="${TTRL_ENABLE}" \
     +trainer.val_before_train=True \
     +algorithm.filter_groups.enable=False \
     +trainer.val_files=mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet \

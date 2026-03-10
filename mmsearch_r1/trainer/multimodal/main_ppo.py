@@ -32,7 +32,7 @@ def run_ppo(config, compute_score=None):
         env_vars = {'TOKENIZERS_PARALLELISM': 'true', 'NCCL_DEBUG': 'WARN'}
         # Forward search-related credentials/settings to Ray workers.
         passthrough_env_keys = [
-            "SERPAPI_API_KEY",
+            "SERPER_API_KEY",
             "OPENROUTER_API_KEY",
             "QWEN_API_KEY",
             "DASHSCOPE_API_KEY",
