@@ -31,6 +31,12 @@ def run_ppo(config, compute_score=None):
         # this is for local ray cluster
         env_vars = {'TOKENIZERS_PARALLELISM': 'true', 'NCCL_DEBUG': 'WARN'}
         # Forward search-related credentials/settings to Ray workers.
+        # Prevent Ray from overwriting CUDA_VISIBLE_DEVICES so that user-specified
+        # GPU IDs (e.g. CUDA_VISIBLE_DEVICES=1,3) are respected across workers.
+        # See: https://docs.ray.io/en/latest/ray-core/scheduling/resources.html
+        if os.getenv("CUDA_VISIBLE_DEVICES"):
+            env_vars["RAY_EXPERIMENTAL_NOSET_CUDA_VISIBLE_DEVICES"] = "1"
+
         passthrough_env_keys = [
             "SERPER_API_KEY",
             "OPENROUTER_API_KEY",
