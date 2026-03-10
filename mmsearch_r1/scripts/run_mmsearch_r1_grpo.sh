@@ -69,7 +69,7 @@ python3 -m mmsearch_r1.trainer.multimodal.main_ppo \
     +trainer.search_penalty=0.1 \
     +trainer.format_penalty=0.1 \
     +trainer.reward_mode="EM" \
-    +trainer.ttrl="${TTRL_ENABLE}" \
+    trainer.ttrl="${TTRL_ENABLE}" \
     +trainer.val_before_train=True \
     +algorithm.filter_groups.enable=False \
     +trainer.val_files=mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet \

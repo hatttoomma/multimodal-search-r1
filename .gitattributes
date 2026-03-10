@@ -1,1 +1,2 @@
 *.parquet filter=lfs diff=lfs merge=lfs -text
+mmsearch_r1/data/mmsearch_r1_infoseek_sub_2k.parquet filter=lfs diff=lfs merge=lfs -text
